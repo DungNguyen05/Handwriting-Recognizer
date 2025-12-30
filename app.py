@@ -25,14 +25,8 @@ def load_model():
 
 load_model()
 
-# EMNIST Balanced labels (37 classes - letters only)
-# Classes 0-25: Uppercase A-Z
-# Classes 26-36: Lowercase a, b, d, e, f, g, h, n, q, r, t
-LABELS = [
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    'a', 'b', 'd', 'e', 'f', 'g', 'h', 'n', 'q', 'r', 't'
-]
+# EMNIST Digits only (10 classes: 0-9)
+LABELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 def get_label(index):
     if 0 <= index < len(LABELS):
