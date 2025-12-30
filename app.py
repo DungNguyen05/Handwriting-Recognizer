@@ -9,8 +9,7 @@ import time
 app = Flask(__name__)
 
 # Load model
-# Load model
-MODEL_PATH = 'experiments/models/ResNet_Deep.h5'
+MODEL_PATH = 'models/Baseline.h5'
 model = None
 
 def load_model():
@@ -26,16 +25,14 @@ def load_model():
 
 load_model()
 
-# Mapping for EMNIST Balanced (37 classes - No Digits)
-# 0-25: Uppercase (A-Z)
-# 26-36: Lowercase (a, b, d, e, f, g, h, n, q, r, t)
-import string
-
-# Define the label list exactly as valid for EMNIST Balanced
-# Note: EMNIST balanced merges some upper/lower classes that look identical (c, i, j, k, l, m, o, p, s, u, v, w, x, y, z)
-# The remaining 11 lowercase letters are:
-LOWERCASE_SUBSET = ['a', 'b', 'd', 'e', 'f', 'g', 'h', 'n', 'q', 'r', 't']
-LABELS = list(string.ascii_uppercase) + LOWERCASE_SUBSET
+# EMNIST Balanced labels (37 classes - letters only)
+# Classes 0-25: Uppercase A-Z
+# Classes 26-36: Lowercase a, b, d, e, f, g, h, n, q, r, t
+LABELS = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+    'a', 'b', 'd', 'e', 'f', 'g', 'h', 'n', 'q', 'r', 't'
+]
 
 def get_label(index):
     if 0 <= index < len(LABELS):
@@ -53,28 +50,27 @@ def predict():
 
     try:
         data = request.json
-        image_data = data['image'] # base64 string
-        rotate_angle = data.get('rotate', 0) # 0, 90, 180, 270
+        image_data = data['image']
+        rotate_angle = data.get('rotate', 0)
         is_mirror = data.get('mirror', False)
 
-        # Decode base64
-        # Format is "data:image/png;base64,....."
+        # Decode base64 image
         encoded_data = image_data.split(',')[1]
         nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
 
-        # Preprocess
         # Resize to 28x28
         img_resized = cv2.resize(img, (28, 28))
         
-        # Check if background is white
+        # Invert if background is white (canvas has white background)
         if np.mean(img_resized) > 127: 
             img_resized = 255 - img_resized
 
-        # Apply transformations requested by UI
+        # Apply mirror transformation
         if is_mirror:
-            img_resized = cv2.flip(img_resized, 1) # Flip horizontal
+            img_resized = cv2.flip(img_resized, 1)
 
+        # Apply rotation
         if rotate_angle == 90:
             img_resized = cv2.rotate(img_resized, cv2.ROTATE_90_CLOCKWISE)
         elif rotate_angle == 180:
@@ -82,7 +78,7 @@ def predict():
         elif rotate_angle == 270:
             img_resized = cv2.rotate(img_resized, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
-        # DEBUG: Save request images
+        # Save debug images
         os.makedirs('request', exist_ok=True)
         timestamp = int(time.time() * 1000)
         cv2.imwrite(f'request/{timestamp}_original.png', img)
@@ -91,22 +87,21 @@ def predict():
         # Normalize to 0-1
         img_norm = img_resized.astype('float32') / 255.0
         
-        # Reshape to (1, 28, 28, 1)
+        # Reshape to (1, 28, 28, 1) for model input
         img_input = img_norm.reshape(1, 28, 28, 1)
 
-        # Debug: Encode processed image to show in UI
-        # Scale back to 0-255 for display
+        # Create debug image for UI display
         img_debug = (img_norm * 255).astype(np.uint8)
         _, buffer = cv2.imencode('.png', img_debug)
         debug_base64 = base64.b64encode(buffer).decode('utf-8')
 
         # Predict
-        prediction = model.predict(img_input)
+        prediction = model.predict(img_input, verbose=0)
         class_idx = np.argmax(prediction)
         confidence = float(np.max(prediction))
         label = get_label(class_idx)
 
-        # Get all probabilities
+        # Get all probabilities for chart
         all_probs = {get_label(i): float(prediction[0][i]) for i in range(len(LABELS))}
 
         return jsonify({
@@ -115,8 +110,11 @@ def predict():
             'all_probs': all_probs,
             'debug_image': f"data:image/png;base64,{debug_base64}"
         })
+        
     except Exception as e:
-        print(f"Prediction error: {e}")
+        print(f"❌ Prediction error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
