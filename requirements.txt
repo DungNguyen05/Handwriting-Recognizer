@@ -10,3 +10,4 @@ tqdm
 pydot
 flask
 opencv-python
+pydot

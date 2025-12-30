@@ -67,10 +67,6 @@ def predict():
         # Resize to 28x28
         img_resized = cv2.resize(img, (28, 28))
         
-        # Invert colors? 
-        # Canvas: White background (255), Black drawing (0)
-        # Model (MNIST-like): Typically Black background (0), White drawing (255)
-        # Let's invert to match standard MNIST/EMNIST format
         # Check if background is white
         if np.mean(img_resized) > 127: 
             img_resized = 255 - img_resized

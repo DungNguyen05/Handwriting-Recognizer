@@ -75,7 +75,7 @@ def architecture_1_baseline():
     BASELINE - Simple CNN (Your original)
     - 2 Conv blocks
     - Basic structure
-    - ~200K parameters
+    - ~400K parameters
     """
     model = models.Sequential([
         # data_augmentation,
@@ -412,6 +412,13 @@ def train_and_evaluate(model, name, epochs=15, batch_size=128):
         loss='categorical_crossentropy',
         metrics=['accuracy']
     )
+
+    # Model summary
+    model.summary()
+
+    # Visualize the model
+    keras.utils.plot_model(model, to_file=f'data/model_{name}.png', show_shapes=True, show_layer_names=True)
+    print(f"\n✅ Đã lưu: data/model_{name}.png") 
     
     # Summary
     print(f"\n📊 Model Summary:")
@@ -695,16 +702,7 @@ print(f"""
    - BatchNorm typically adds ~2-5% accuracy
    - Stabilizes training significantly
 
-2. Depth vs Width:
-   - Deeper models: Better feature learning
-   - Wider models: More parameters but not always better
-   - ResNet-style skip connections help with deep networks
-
-3. Kernel Size:
-   - 3x3 kernels: Standard, efficient
-   - Larger kernels (5x5, 7x7): More receptive field but slower
-
-4. Architecture Recommendations:
+2. Architecture Recommendations:
    - For BEST accuracy: {best_acc['Architecture']}
    - For DEPLOYMENT (size matters): {smallest['Architecture']}
    - For RESEARCH (balanced): {best_efficient['Architecture']}
