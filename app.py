@@ -8,7 +8,7 @@ import time
 
 app = Flask(__name__)
 
-# Load model
+# Load model - Choose which model to use
 MODEL_PATH = 'models/Baseline.h5'
 model = None
 
@@ -18,6 +18,7 @@ def load_model():
         try:
             model = tf.keras.models.load_model(MODEL_PATH)
             print(f"✅ Model loaded from {MODEL_PATH}")
+            print(f"📊 Model: {model.name}")
         except Exception as e:
             print(f"❌ Error loading model: {e}")
     else:
