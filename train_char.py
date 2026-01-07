@@ -1,5 +1,5 @@
 """
-EMNIST DIGIT RECOGNITION - OPTIMIZED FOR M1 SPEED
+EMNIST LETTERS RECOGNITION (A-Z, a-z) - OPTIMIZED FOR M1 SPEED
 Updated: Using tf.data.Dataset pipeline for high-speed training
 """
 
@@ -44,11 +44,11 @@ os.makedirs('models', exist_ok=True)
 os.makedirs('plots', exist_ok=True)
 
 # ============================================================
-# MODEL ARCHITECTURES (GIỮ NGUYÊN)
+# MODEL ARCHITECTURES - UPDATED FOR 52 CLASSES (A-Z + a-z)
 # ============================================================
 
 def build_baseline_model():
-    """BASELINE - Simple CNN"""
+    """BASELINE - Simple CNN for 52 letter classes"""
     model = models.Sequential([
         layers.Input(shape=(28, 28, 1)),
         layers.Conv2D(32, (3, 3), activation='relu'),
@@ -62,12 +62,12 @@ def build_baseline_model():
         layers.Flatten(),
         layers.Dense(256, activation='relu'),
         layers.Dropout(0.3),
-        layers.Dense(10, activation='softmax', dtype='float32') 
+        layers.Dense(52, activation='softmax', dtype='float32')  # 52 classes
     ], name='Baseline')
     return model
 
 def build_resnet_deep_model():
-    """RESNET-DEEPER - 3 Residual blocks"""
+    """RESNET-DEEPER - 3 Residual blocks for 52 letter classes"""
     inputs = layers.Input(shape=(28, 28, 1))
     x = inputs
     
@@ -113,43 +113,41 @@ def build_resnet_deep_model():
     x = layers.Flatten()(x)
     x = layers.Dense(512, activation='relu')(x)
     x = layers.Dropout(0.3)(x)
-    outputs = layers.Dense(10, activation='softmax', dtype='float32')(x)
+    outputs = layers.Dense(52, activation='softmax', dtype='float32')(x)  # 52 classes
     
     model = models.Model(inputs, outputs, name='ResNet')
     return model
 
 # ============================================================
-# DATA LOADING (ĐÃ SỬA ĐỔI ĐỂ TỐI ƯU HÓA)
+# DATA LOADING - UPDATED FOR EMNIST LETTERS
 # ============================================================
 
 def get_optimized_datasets(batch_size=256):
     """
-    Load EMNIST digits using tf.data pipeline for max speed on M1
-    Replaces the old NumPy loading method.
+    Load EMNIST letters (A-Z + a-z = 52 classes) using tf.data pipeline
     """
-    print("\n📦 Loading EMNIST/digits using Optimized tf.data Pipeline...")
+    print("\n📦 Loading EMNIST/letters (52 classes: A-Z + a-z)...")
     
     # Load raw data
     (ds_train_full, ds_test), ds_info = tfds.load(
-        'emnist/digits', 
+        'emnist/letters',  # Changed from digits to letters
         split=['train', 'test'], 
         as_supervised=True, 
         with_info=True
     )
 
-    # Hàm chuẩn hóa và xoay ảnh (chạy song song trong pipeline)
     def preprocess(image, label):
-        # Fix EMNIST rotation (Transpose dimensions)
+        # Fix EMNIST rotation
         image = tf.transpose(image, perm=[1, 0, 2])
         # Normalize to 0-1
         image = tf.cast(image, tf.float32) / 255.0
-        # One-hot encoding
-        label = tf.one_hot(label, 10)
+        # One-hot encoding for 52 classes
+        label = tf.one_hot(label, 52)  # Changed from 10 to 52
         return image, label
 
     AUTOTUNE = tf.data.AUTOTUNE
     
-    # --- SETUP TRAINING DATA (Split Train/Val thủ công vì dùng Dataset) ---
+    # Setup training data
     TOTAL_TRAIN = ds_info.splits['train'].num_examples
     VAL_SIZE = int(TOTAL_TRAIN * 0.1) 
     TRAIN_SIZE = TOTAL_TRAIN - VAL_SIZE
@@ -158,10 +156,10 @@ def get_optimized_datasets(batch_size=256):
     print(f"   • Splitting: {TRAIN_SIZE} Train / {VAL_SIZE} Validation")
 
     ds_train_full = ds_train_full.map(preprocess, num_parallel_calls=AUTOTUNE)
-    ds_train_full = ds_train_full.cache() # Cache vào RAM để đọc siêu nhanh
+    ds_train_full = ds_train_full.cache()
     ds_train_full = ds_train_full.shuffle(TOTAL_TRAIN)
 
-    # Chia Train / Val
+    # Split Train / Val
     ds_train = ds_train_full.take(TRAIN_SIZE)
     ds_val   = ds_train_full.skip(TRAIN_SIZE)
 
@@ -169,7 +167,7 @@ def get_optimized_datasets(batch_size=256):
     ds_train = ds_train.batch(batch_size).prefetch(AUTOTUNE)
     ds_val   = ds_val.batch(batch_size).prefetch(AUTOTUNE)
 
-    # --- SETUP TEST DATA ---
+    # Setup test data
     ds_test = ds_test.map(preprocess, num_parallel_calls=AUTOTUNE)
     ds_test = ds_test.batch(batch_size)
     ds_test = ds_test.cache().prefetch(AUTOTUNE)
@@ -177,13 +175,13 @@ def get_optimized_datasets(batch_size=256):
     return ds_train, ds_val, ds_test
 
 # ============================================================
-# VISUALIZATION (GIỮ NGUYÊN)
+# VISUALIZATION
 # ============================================================
 
 def plot_training_history(history, model_name, save_path='plots'):
     """Visualize training metrics"""
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-    fig.suptitle(f'{model_name.upper()} - Training History', fontsize=16, fontweight='bold')
+    fig.suptitle(f'{model_name.upper()} - Training History (Letters)', fontsize=16, fontweight='bold')
     
     # 1. Accuracy
     ax1 = axes[0, 0]
@@ -216,14 +214,13 @@ def plot_training_history(history, model_name, save_path='plots'):
     ax4.text(0.1, 0.5, summary_text, fontsize=12, bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
     
     plt.tight_layout()
-    plot_path = os.path.join(save_path, f'{model_name}_training_history.png')
+    plot_path = os.path.join(save_path, f'{model_name}_letters_training_history.png')
     plt.savefig(plot_path)
     print(f"\n📊 Plot saved to: {plot_path}")
-    # plt.show() # Commented out for non-interactive envs, uncomment if needed
 
 def print_training_summary(history, model_name, test_acc, training_time):
     print("\n" + "="*60)
-    print(f"📈 {model_name.upper()} - TRAINING SUMMARY")
+    print(f"📈 {model_name.upper()} - TRAINING SUMMARY (LETTERS)")
     print("="*60)
     print(f"  Final Train Acc: {history.history['accuracy'][-1]*100:.2f}%")
     print(f"  Final Val Acc:   {history.history['val_accuracy'][-1]*100:.2f}%")
@@ -232,15 +229,15 @@ def print_training_summary(history, model_name, test_acc, training_time):
     print("="*60)
 
 # ============================================================
-# TRAINING (ĐÃ SỬA ĐỔI ĐỂ NHẬN DATASET)
+# TRAINING
 # ============================================================
 
 def train_model(model_name, epochs=15, batch_size=256):
     print("="*60)
-    print(f"EMNIST DIGIT RECOGNITION - {model_name.upper()} MODEL")
+    print(f"EMNIST LETTERS RECOGNITION - {model_name.upper()} MODEL")
     print("="*60)
     
-    # 1. LOAD DATASET (OPTIMIZED)
+    # 1. LOAD DATASET
     ds_train, ds_val, ds_test = get_optimized_datasets(batch_size=batch_size)
     
     # 2. Build model
@@ -272,11 +269,10 @@ def train_model(model_name, epochs=15, batch_size=256):
     
     history = model.fit(
         ds_train,
-        validation_data=ds_val, # Dataset đã chia sẵn
+        validation_data=ds_val,
         epochs=epochs,
         callbacks=callbacks,
         verbose=1
-        # Lưu ý: Không cần truyền batch_size ở đây vì nó nằm trong dataset rồi
     )
     
     end_time = time.time()
@@ -291,7 +287,7 @@ def train_model(model_name, epochs=15, batch_size=256):
     plot_training_history(history, model_name)
     
     # Save
-    model_path = f"models/{model_name.capitalize()}.keras"
+    model_path = f"models/{model_name.capitalize()}_Letters.keras"
     model.save(model_path)
     print(f"\n💾 Model saved to: {model_path}")
     
@@ -302,7 +298,6 @@ def train_model(model_name, epochs=15, batch_size=256):
 # ============================================================
 
 if __name__ == '__main__':
-    # Tăng batch_size lên 256 để tận dụng GPU M1
     train_model(
         model_name='baseline',
         epochs=20,

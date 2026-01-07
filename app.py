@@ -9,7 +9,7 @@ import time
 app = Flask(__name__)
 
 # Load model - Choose which model to use
-MODEL_PATH = 'models/Resnet.keras'
+MODEL_PATH = 'models/Baseline.keras'
 model = None
 
 def load_model():
