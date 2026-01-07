@@ -9,14 +9,23 @@ import time
 app = Flask(__name__)
 
 # Load model - Choose which model to use
-MODEL_PATH = 'models/Baseline.h5'
+MODEL_PATH = 'models/Resnet.keras'
 model = None
 
 def load_model():
     global model
     if os.path.exists(MODEL_PATH):
         try:
-            model = tf.keras.models.load_model(MODEL_PATH)
+            # FIX: Load model với compile=False để tránh lỗi version mismatch
+            model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+            
+            # Compile lại model sau khi load
+            model.compile(
+                optimizer='adam',
+                loss='categorical_crossentropy',
+                metrics=['accuracy']
+            )
+            
             print(f"✅ Model loaded from {MODEL_PATH}")
             print(f"📊 Model: {model.name}")
         except Exception as e:
