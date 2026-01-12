@@ -8,7 +8,7 @@ import time
 
 app = Flask(__name__)
 
-# Load model - Choose which model to use
+# Load model
 MODEL_PATH = 'models/Baseline.keras'
 model = None
 
@@ -16,18 +16,13 @@ def load_model():
     global model
     if os.path.exists(MODEL_PATH):
         try:
-            # FIX: Load model với compile=False để tránh lỗi version mismatch
             model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-            
-            # Compile lại model sau khi load
             model.compile(
                 optimizer='adam',
                 loss='categorical_crossentropy',
                 metrics=['accuracy']
             )
-            
             print(f"✅ Model loaded from {MODEL_PATH}")
-            print(f"📊 Model: {model.name}")
         except Exception as e:
             print(f"❌ Error loading model: {e}")
     else:
@@ -35,8 +30,14 @@ def load_model():
 
 load_model()
 
-# EMNIST Digits only (10 classes: 0-9)
-LABELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+# EMNIST Balanced: 47 classes (digits + letters merged case)
+LABELS = [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+    'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+    'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'd', 'e',
+    'f', 'g', 'h', 'n', 'q', 'r', 't'
+]
 
 def get_label(index):
     if 0 <= index < len(LABELS):
@@ -55,8 +56,6 @@ def predict():
     try:
         data = request.json
         image_data = data['image']
-        rotate_angle = data.get('rotate', 0)
-        is_mirror = data.get('mirror', False)
 
         # Decode base64 image
         encoded_data = image_data.split(',')[1]
@@ -66,38 +65,18 @@ def predict():
         # Resize to 28x28
         img_resized = cv2.resize(img, (28, 28))
         
-        # Invert if background is white (canvas has white background)
+        # Invert if background is white
         if np.mean(img_resized) > 127: 
             img_resized = 255 - img_resized
 
-        # Apply mirror transformation
-        if is_mirror:
-            img_resized = cv2.flip(img_resized, 1)
-
-        # Apply rotation
-        if rotate_angle == 90:
-            img_resized = cv2.rotate(img_resized, cv2.ROTATE_90_CLOCKWISE)
-        elif rotate_angle == 180:
-            img_resized = cv2.rotate(img_resized, cv2.ROTATE_180)
-        elif rotate_angle == 270:
-            img_resized = cv2.rotate(img_resized, cv2.ROTATE_90_COUNTERCLOCKWISE)
-
-        # Save debug images
+        # Save debug
         os.makedirs('request', exist_ok=True)
         timestamp = int(time.time() * 1000)
-        cv2.imwrite(f'request/{timestamp}_original.png', img)
         cv2.imwrite(f'request/{timestamp}_processed.png', img_resized)
 
-        # Normalize to 0-1
+        # Normalize
         img_norm = img_resized.astype('float32') / 255.0
-        
-        # Reshape to (1, 28, 28, 1) for model input
         img_input = img_norm.reshape(1, 28, 28, 1)
-
-        # Create debug image for UI display
-        img_debug = (img_norm * 255).astype(np.uint8)
-        _, buffer = cv2.imencode('.png', img_debug)
-        debug_base64 = base64.b64encode(buffer).decode('utf-8')
 
         # Predict
         prediction = model.predict(img_input, verbose=0)
@@ -105,14 +84,19 @@ def predict():
         confidence = float(np.max(prediction))
         label = get_label(class_idx)
 
-        # Get all probabilities for chart
-        all_probs = {get_label(i): float(prediction[0][i]) for i in range(len(LABELS))}
+        # Top 5 predictions
+        top5_idx = np.argsort(prediction[0])[-5:][::-1]
+        top5 = [
+            {
+                'label': get_label(i),
+                'prob': float(prediction[0][i])
+            } for i in top5_idx
+        ]
 
         return jsonify({
             'label': label,
-            'confidence': f"{confidence*100:.2f}%",
-            'all_probs': all_probs,
-            'debug_image': f"data:image/png;base64,{debug_base64}"
+            'confidence': confidence,
+            'top5': top5
         })
         
     except Exception as e:

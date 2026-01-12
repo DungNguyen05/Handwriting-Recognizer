@@ -1,376 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Handwriting Recognition</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --primary: #6366f1;
-            /* Indigo-500 */
-            --primary-hover: #4f46e5;
-            /* Indigo-600 */
-            --bg-gradient-from: #f8fafc;
-            --bg-gradient-to: #e2e8f0;
-            --surface: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --accent-success: #10b981;
-            --accent-danger: #ef4444;
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --radius-xl: 1.5rem;
-            --radius-md: 0.75rem;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
+        * {
             margin: 0;
-            min-height: 100vh;
-            background: linear-gradient(135deg, var(--bg-gradient-from), var(--bg-gradient-to));
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
+            padding: 0;
             box-sizing: border-box;
         }
 
-        .app-container {
-            display: grid;
-            grid-template-columns: 1fr 1.5fr;
-            gap: 2.5rem;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            padding: 2.5rem;
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            width: 100%;
-            max-width: 1200px;
-            height: 90vh;
-            max-height: 800px;
-        }
-
-        /* Initial Setup for Mobile/Responsive */
-        @media (max-width: 968px) {
-            .app-container {
-                grid-template-columns: 1fr;
-                height: auto;
-                max-height: none;
-            }
-        }
-
-        /* --- Input Panel --- */
-        .panel {
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            height: 100%;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
 
-        .header {
-            margin-bottom: 0.5rem;
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
         }
 
         h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 0;
-            background: linear-gradient(to right, var(--primary), #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
         }
 
-        p.subtitle {
-            margin: 0.5rem 0 0;
-            color: var(--text-muted);
-            font-size: 0.95rem;
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
         }
 
         .canvas-wrapper {
-            background: white;
-            border-radius: var(--radius-xl);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            border: 2px solid #e5e7eb;
-            overflow: hidden;
-            flex: 0 0 auto;
-            align-self: center;
-            position: relative;
-            transition: border-color 0.2s;
-        }
-
-        .canvas-wrapper:hover {
-            border-color: var(--primary);
+            background: #f8f9fa;
+            border: 3px solid #dee2e6;
+            border-radius: 15px;
+            display: inline-block;
+            margin: 0 auto 20px;
+            display: block;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         canvas {
             display: block;
             cursor: crosshair;
-            background: white;
+            border-radius: 12px;
         }
 
-        .tools {
+        .buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            gap: 15px;
+            margin-bottom: 30px;
         }
 
-        .btn {
-            padding: 0.875rem;
+        button {
+            padding: 15px;
             border: none;
-            border-radius: var(--radius-md);
+            border-radius: 10px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: inherit;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-            color: white;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-        }
-
-        .btn-primary:hover {
-            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background: #f1f5f9;
-            color: var(--text-muted);
-        }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-            color: var(--text-main);
-        }
-
-        /* --- Settings Panel --- */
-        .settings {
-            background: #f8fafc;
-            padding: 1.25rem;
-            border-radius: var(--radius-md);
-            border: 1px solid #e2e8f0;
-        }
-
-        .settings-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            margin-bottom: 0.75rem;
-        }
-
-        .toggles {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .toggle-btn {
-            background: white;
-            border: 1px solid #cbd5e1;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.9rem;
-            cursor: pointer;
-            color: var(--text-muted);
             transition: all 0.2s;
-            flex: 1;
         }
 
-        .toggle-btn.active {
-            background: #e0e7ff;
-            border-color: var(--primary);
-            color: var(--primary);
-            font-weight: 600;
+        .btn-clear {
+            background: #e9ecef;
+            color: #495057;
         }
 
-        /* --- Output Panel --- */
-        .output-panel {
-            background: white;
-            border-radius: var(--radius-xl);
-            padding: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        .btn-clear:hover {
+            background: #dee2e6;
+        }
+
+        .btn-predict {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .result {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            min-height: 200px;
             display: flex;
             flex-direction: column;
-            gap: 2rem;
-            position: relative;
-            overflow: hidden;
+            justify-content: center;
         }
 
-        .prediction-hero {
+        .result-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .result-char {
+            font-size: 80px;
+            font-weight: 900;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .result-conf {
+            font-size: 18px;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        .top5 {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #dee2e6;
+        }
+
+        .top5-title {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .top5-list {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .top5-item {
             text-align: center;
-            position: relative;
         }
 
-        .pred-label {
-            font-size: 1rem;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-            display: block;
+        .top5-char {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
         }
 
-        .pred-value {
-            font-size: 5rem;
-            font-weight: 800;
-            line-height: 1;
-            background: linear-gradient(135deg, var(--text-main), var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 0;
-            transition: all 0.3s;
+        .top5-prob {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
         }
 
-        .pred-conf {
-            font-size: 1.25rem;
-            font-weight: 500;
-            margin-top: 0.5rem;
-            color: var(--text-muted);
-        }
-
-        .pred-conf strong {
-            color: var(--accent-success);
-        }
-
-        .debug-view {
-            position: absolute;
-            top: 0;
-            right: 0;
+        .loading {
             opacity: 0.6;
-            transition: opacity 0.2s;
-        }
-
-        .debug-view:hover {
-            opacity: 1;
-        }
-
-        .debug-img {
-            width: 40px;
-            height: 40px;
-            border-radius: 4px;
-            border: 1px solid #e2e8f0;
-            image-rendering: pixelated;
-        }
-
-        .chart-wrapper {
-            flex: 1;
-            min-height: 300px;
-            position: relative;
-        }
-
-        /* Loading State */
-        body.processing .btn-primary {
-            opacity: 0.8;
             pointer-events: none;
-            cursor: wait;
         }
     </style>
 </head>
-
 <body>
+    <div class="container">
+        <h1>✍️ AI Recognizer</h1>
+        <p class="subtitle">Draw any letter or digit</p>
 
-    <div class="app-container">
-        <!-- LEFT: INPUT -->
-        <div class="panel">
-            <div class="header">
-                <h1>AI Recognizer</h1>
-                <p class="subtitle">Draw any digit (0-9) or letter (A-Z, a-z)</p>
-            </div>
-
-            <div class="canvas-wrapper">
-                <canvas id="canvas" width="350" height="350"></canvas>
-            </div>
-
-            <div class="tools">
-                <button class="btn btn-secondary" onclick="clearCanvas()">
-                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Clear
-                </button>
-                <button class="btn btn-primary" onclick="predict()">
-                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                    Identify
-                </button>
-            </div>
-
-            <div class="settings">
-                <div class="settings-title">Preprocessing & Controls</div>
-                <div class="toggles">
-                    <button id="btn-rotate" class="toggle-btn" onclick="cycleRotation()">
-                        Rotate: 0°
-                    </button>
-                    <button id="btn-mirror" class="toggle-btn" onclick="toggleMirror()">
-                        Mirror: Off
-                    </button>
-                </div>
-            </div>
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="300" height="300"></canvas>
         </div>
 
-        <!-- RIGHT: OUTPUT -->
-        <div class="output-panel">
-            <div class="debug-view" title="Input seen by model">
-                <img id="debug-img" class="debug-img">
-            </div>
+        <div class="buttons">
+            <button class="btn-clear" onclick="clearCanvas()">Clear</button>
+            <button class="btn-predict" onclick="predict()">Identify</button>
+        </div>
 
-            <div class="prediction-hero">
-                <span class="pred-label">Best Prediction</span>
-                <h2 id="prediction-char" class="pred-value">-</h2>
-                <div id="prediction-conf" class="pred-conf">Draw something...</div>
-            </div>
-
-            <div class="chart-wrapper">
-                <canvas id="probsChart"></canvas>
+        <div class="result" id="result">
+            <div class="result-label">Draw something to begin</div>
+            <div class="result-char" id="prediction-char">?</div>
+            <div class="result-conf" id="prediction-conf"></div>
+            <div class="top5" id="top5" style="display: none;">
+                <div class="top5-title">Top 5 Predictions</div>
+                <div class="top5-list" id="top5-list"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- Canvas Setup ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
         let lastX = 0, lastY = 0;
 
-        // High DPI fix
-        function resizeCanvas() {
-            // Keep logical size 350x350 but scale for retina if needed?
-            // For now simple 350x350 logic
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 25; // Thicker for better downscaling
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-        }
-        resizeCanvas();
+        // Setup canvas
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
 
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
-            // Handle touch
             if (e.touches) {
-                return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+                return { 
+                    x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
+                    y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
+                };
             }
             return { x: e.offsetX, y: e.offsetY };
         }
@@ -399,7 +244,6 @@
             isDrawing = false;
         }
 
-        // Listeners
         canvas.addEventListener('mousedown', start);
         canvas.addEventListener('mousemove', move);
         canvas.addEventListener('mouseup', stop);
@@ -408,129 +252,56 @@
         canvas.addEventListener('touchmove', move, { passive: false });
         canvas.addEventListener('touchend', stop);
 
-        // --- Logic ---
-        let currentRotation = 0;
-        let isMirrored = false;
-
         function clearCanvas() {
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            document.getElementById('prediction-char').innerText = '-';
-            document.getElementById('prediction-conf').innerHTML = 'Draw something...';
-            document.getElementById('debug-img').removeAttribute('src');
-
-            // Allow animation to settle
-            if (probsChart) {
-                probsChart.data.datasets[0].data = Array(probsChart.data.labels.length).fill(0);
-                probsChart.update();
-            }
+            
+            document.getElementById('prediction-char').innerText = '?';
+            document.getElementById('prediction-conf').innerHTML = '';
+            document.querySelector('.result-label').innerText = 'Draw something to begin';
+            document.getElementById('top5').style.display = 'none';
         }
 
-        function cycleRotation() {
-            currentRotation = (currentRotation + 90) % 360;
-            const btn = document.getElementById('btn-rotate');
-            btn.innerText = `Rotate: ${currentRotation}°`;
-            btn.classList.toggle('active', currentRotation !== 0);
-        }
-
-        function toggleMirror() {
-            isMirrored = !isMirrored;
-            const btn = document.getElementById('btn-mirror');
-            btn.innerText = `Mirror: ${isMirrored ? 'On' : 'Off'}`;
-            btn.classList.toggle('active', isMirrored);
-        }
-
-        // --- Chart ---
-        let probsChart = null;
-
-        function initChart(labels) {
-            const ctxChart = document.getElementById('probsChart').getContext('2d');
-            probsChart = new Chart(ctxChart, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Probability',
-                        data: Array(labels.length).fill(0),
-                        backgroundColor: '#6366f1',
-                        borderRadius: 4,
-                        maxBarThickness: 30
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { origin: 'start', legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 1.0,
-                            grid: { display: true, color: '#f1f5f9' },
-                            ticks: { display: false } // Hide Y axis numbers for cleaner look
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { autoSkip: false, maxRotation: 90, minRotation: 90, font: { size: 10 } }
-                        }
-                    }
-                }
-            });
-        }
-
-        // --- PREDICT ---
         async function predict() {
-            document.body.classList.add('processing');
+            const btn = document.querySelector('.btn-predict');
+            btn.classList.add('loading');
+            
             const imageData = canvas.toDataURL('image/png');
 
             try {
                 const response = await fetch('/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        image: imageData,
-                        rotate: currentRotation,
-                        mirror: isMirrored
-                    })
+                    body: JSON.stringify({ image: imageData })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Update Hero
+                    document.querySelector('.result-label').innerText = 'Prediction';
                     document.getElementById('prediction-char').innerText = data.label;
-                    document.getElementById('prediction-conf').innerHTML = `Confidence: <strong>${data.confidence}</strong>`;
-                    document.getElementById('debug-img').src = data.debug_image;
-
-                    // Update Chart
-                    // Ensure labels match backend if not initialized
-                    const labels = Object.keys(data.all_probs);
-                    const values = Object.values(data.all_probs);
-
-                    if (!probsChart) {
-                        initChart(labels);
-                    }
-
-                    // Colorizing
-                    const colors = labels.map(l => l === data.label ? '#ef4444' : '#6366f1');
-
-                    probsChart.data.labels = labels;
-                    probsChart.data.datasets[0].data = values;
-                    probsChart.data.datasets[0].backgroundColor = colors;
-                    probsChart.update();
-
+                    document.getElementById('prediction-conf').innerHTML = 
+                        `Confidence: <strong>${(data.confidence * 100).toFixed(1)}%</strong>`;
+                    
+                    // Show top 5
+                    const top5List = document.getElementById('top5-list');
+                    top5List.innerHTML = data.top5.map(item => `
+                        <div class="top5-item">
+                            <div class="top5-char">${item.label}</div>
+                            <div class="top5-prob">${(item.prob * 100).toFixed(1)}%</div>
+                        </div>
+                    `).join('');
+                    document.getElementById('top5').style.display = 'block';
                 } else {
                     alert('Error: ' + data.error);
                 }
-
             } catch (e) {
                 console.error(e);
                 alert('Connection error');
             } finally {
-                document.body.classList.remove('processing');
+                btn.classList.remove('loading');
             }
         }
     </script>
 </body>
-
 </html>
